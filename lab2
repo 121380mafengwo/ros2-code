@@ -1,1 +1,6 @@
-git commit -m "Lab 2 completed: Custom Services and Actions (ISU ID: 505269)"
+
+cp -r ~/ros2_ws/src/lab2 ~/ros2_ws/lab_repo/
+cd ~/ros2_ws/lab_repo
+git add lab2/
+git commit -m "Add lab2: Custom Services and Actions (ISU ID: 505269)"
+git push origin main
