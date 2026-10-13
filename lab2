@@ -1,6 +1,6 @@
-<exec_depend>rclpy</exec_depend>
-  <exec_depend>turtlesim</exec_depend>
-  <exec_depend>lab2_interfaces</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>launch</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
+data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')), # <--- 确保有这一行！
+    ],
