@@ -1,11 +1,1 @@
-cat <<EOF > .gitignore
-build/
-install/
-log/
-
-__pycache__/
-*.pyc
-
-.DS_Store
-.vscode/
-EOF
+git commit -m "Lab 2 completed: Custom Services and Actions (ISU ID: 505269)"
