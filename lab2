@@ -1,6 +1,25 @@
+# 1. 强制删除之前乱掉的临时仓库
+rm -rf ~/ros2_ws/lab_repo
 
-cp -r ~/ros2_ws/src/lab2 ~/ros2_ws/lab_repo/
+# 2. 回到工作空间根目录 (千万不要在 lab2 目录里执行)
+cd ~/ros2_ws
+
+# 3. 重新克隆远程仓库到 lab_repo (此时会要求输入用户名和Token)
+git clone https://github.com/121380mafengwo/student_505269.git lab_repo
+
+# 4. 进入克隆下来的正确仓库目录
 cd ~/ros2_ws/lab_repo
+
+# 5. 查看一下文件，确保里面有 lab1 和 .gitignore
+ls
+
+# 6. 把你的 lab2 复制过来
+cp -r ~/ros2_ws/src/lab2 ~/ros2_ws/lab_repo/
+
+# 7. 再次确认文件，此时应该同时看到 lab1 和 lab2
+ls
+
+# 8. 添加 lab2 到 Git，提交，并推送到 GitHub
 git add lab2/
 git commit -m "Add lab2: Custom Services and Actions (ISU ID: 505269)"
 git push origin main
