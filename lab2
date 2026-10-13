@@ -1,6 +1,8 @@
-entry_points={
-        'console_scripts': [
-            'service_server = lab2_controller.service_server:main',
-            'service_client = lab2_controller.service_client:main',
-        ],
-    },
+source /opt/ros/jazzy/setup.bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch lab2_controller service_server.launch.py
+
+
+source /opt/ros/jazzy/setup.bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch lab2_controller service_client.launch.py
