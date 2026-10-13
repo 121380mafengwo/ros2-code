@@ -1,47 +1,75 @@
 import rclpy
 from rclpy.node import Node
-from lab2_interfaces.srv import A505269  # Импорт нашего пользовательского интерфейса
+from lab2_interfaces.srv import A505269
+from geometry_msgs.msg import Twist
+from turtlesim.msg import Pose
 import math
 
-class TurtleServiceServer(Node):
+class TurtleServiceClient(Node):
     def __init__(self):
-        super().__init__('turtle_service_server')
-        # Создаем сервис с именем 'get_errors'
-        self.srv = self.create_service(A505269, 'get_errors', self.handle_service)
-        
-        # Список целевых точек (координаты из ЛР №1, замените на свои)
-        self.targets = [(5.5, 5.5), (2.0, 8.0), (8.0, 2.0)]
-        self.current_target_idx = 0
-        
-    def handle_service(self, request, response):
-        target_x, target_y = self.targets[self.current_target_idx]
-        
-        # Вычисляем ошибки расстояния и угла
-        dx = target_x - request.x_current
-        dy = target_y - request.y_current
-        
-        response.distance = math.sqrt(dx**2 + dy**2)
-        # Абсолютный угол цели (от 0 до 2pi)
-        response.angle = math.atan2(dy, dx) 
-        if response.angle < 0:
-            response.angle += 2 * math.pi
+        super().__init__('turtle_service_client')
+        self.cli = self.create_client(A505269, 'get_errors')
+        while not self.cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Ожидание сервера...')  # Ждем, пока сервер станет доступен
             
-        # Проверяем достижение цели с допуском 0.1 метра
-        if response.distance < 0.1:
-            response.is_completed = True
-            if self.current_target_idx < len(self.targets) - 1:
-                self.current_target_idx += 1
-                self.get_logger().info(f'Цель достигнута, переключение на следующую точку {self.current_target_idx}')
-        else:
-            response.is_completed = False
+        self.publisher = self.create_publisher(Twist, '/turtle1/cmd_vel', 10)
+        self.subscription = self.create_subscription(Pose, '/turtle1/pose', self.pose_callback, 10)
+        
+        self.current_pose = None
+        self.req = A505269.Request()
+        
+        self.timer = self.create_timer(0.1, self.control_loop)
+        self.waiting_for_response = False
+        
+    def pose_callback(self, msg):
+        self.current_pose = msg
+
+    def control_loop(self):
+        if self.current_pose is None:
+            return
+        
+        # Отправляем новый запрос, только если не ждем ответа от сервера
+        if not self.waiting_for_response:
+            self.req.x_current = self.current_pose.x
+            self.req.y_current = self.current_pose.y
             
-        self.get_logger().info(f'Текущие координаты: ({request.x_current:.2f}, {request.y_current:.2f}), Ошибка расстояния: {response.distance:.2f}')
-        return response
+            self.future = self.cli.call_async(self.req)
+            self.future.add_done_callback(self.service_response_callback)
+            self.waiting_for_response = True
+            
+    def service_response_callback(self, future):
+        try:
+            response = future.result()
+            if response.is_completed:
+                self.get_logger().info('Цель достигнута!')  # Уведомление о достижении цели
+                self.waiting_for_response = False 
+                self.publisher.publish(Twist()) # Останавливаем черепаху
+                return
+                
+            # Вычисляем ошибку угла
+            angle_error = response.angle - self.current_pose.theta
+            # Нормализация угла в диапазон [-pi, pi]
+            angle_error = math.atan2(math.sin(angle_error), math.cos(angle_error))
+            
+            twist = Twist()
+            # Если угол отклонения больше 0.1 рад, сначала поворачиваемся
+            if abs(angle_error) > 0.1:
+                twist.angular.z = 1.0 if angle_error > 0 else -1.0
+            elif response.distance > 0.1: # Затем движемся вперед
+                twist.linear.x = 1.0
+                
+            self.publisher.publish(twist)
+            self.waiting_for_response = False  
+            
+        except Exception as e:
+            self.get_logger().error(f'Ошибка вызова сервиса: {e}')
+            self.waiting_for_response = False
 
 def main(args=None):
     rclpy.init(args=args)
-    node = TurtleServiceServer()
+    node = TurtleServiceClient()
     rclpy.spin(node)
+    node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
