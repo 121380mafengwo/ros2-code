@@ -49,3 +49,20 @@ colcon build --packages-select lab2_interfaces
 
 source install/setup.bash
 ros2 interface show lab2_interfaces/srv/A505269
+
+nano ~/ros2_ws/src/lab2/lab2_interfaces/srv/A505269.srv
+
+float64 x_current
+float64 y_current
+---
+float64 distance
+float64 angle
+bool is_completed
+
+
+cd ~/ros2_ws
+rm -rf build install log
+colcon build --packages-select lab2_interfaces
+source install/setup.bash
+
+ros2 interface show lab2_interfaces/srv/A505269
