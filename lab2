@@ -1,6 +1,48 @@
-data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')), # <--- 确保有这一行！
-    ],
+import rclpy
+from rclpy.node import Node
+from lab2_interfaces.srv import A505269  # Импорт нашего пользовательского интерфейса
+import math
+
+class TurtleServiceServer(Node):
+    def __init__(self):
+        super().__init__('turtle_service_server')
+        # Создаем сервис с именем 'get_errors'
+        self.srv = self.create_service(A505269, 'get_errors', self.handle_service)
+        
+        # Список целевых точек (координаты из ЛР №1, замените на свои)
+        self.targets = [(5.5, 5.5), (2.0, 8.0), (8.0, 2.0)]
+        self.current_target_idx = 0
+        
+    def handle_service(self, request, response):
+        target_x, target_y = self.targets[self.current_target_idx]
+        
+        # Вычисляем ошибки расстояния и угла
+        dx = target_x - request.x_current
+        dy = target_y - request.y_current
+        
+        response.distance = math.sqrt(dx**2 + dy**2)
+        # Абсолютный угол цели (от 0 до 2pi)
+        response.angle = math.atan2(dy, dx) 
+        if response.angle < 0:
+            response.angle += 2 * math.pi
+            
+        # Проверяем достижение цели с допуском 0.1 метра
+        if response.distance < 0.1:
+            response.is_completed = True
+            if self.current_target_idx < len(self.targets) - 1:
+                self.current_target_idx += 1
+                self.get_logger().info(f'Цель достигнута, переключение на следующую точку {self.current_target_idx}')
+        else:
+            response.is_completed = False
+            
+        self.get_logger().info(f'Текущие координаты: ({request.x_current:.2f}, {request.y_current:.2f}), Ошибка расстояния: {response.distance:.2f}')
+        return response
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = TurtleServiceServer()
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
