@@ -66,3 +66,15 @@ colcon build --packages-select lab2_interfaces
 source install/setup.bash
 
 ros2 interface show lab2_interfaces/srv/A505269
+
+nano ~/ros2_ws/src/lab2/lab2_interfaces/package.xml
+
+<build_depend>rosidl_default_generators</build_depend>
+<exec_depend>rosidl_default_runtime</exec_depend>
+<member_of_group>rosidl_interface_packages</member_of_group>
+
+cd ~/ros2_ws
+rm -rf build install log
+colcon build --packages-select lab2_interfaces
+source install/setup.bash
+ros2 interface show lab2_interfaces/srv/A505269
