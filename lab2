@@ -1,18 +1,6 @@
-from launch import LaunchDescription
-from launch_ros.actions import Node
-
-def generate_launch_description():
-    return LaunchDescription([
-        Node(package='turtlesim', executable='turtlesim_node', name='sim'),
-        Node(package='lab2_controller', executable='service_server', name='server'),
-    ])
-
-
-
-from launch import LaunchDescription
-from launch_ros.actions import Node
-
-def generate_launch_description():
-    return LaunchDescription([
-        Node(package='lab2_controller', executable='service_client', name='client'),
-    ])
+entry_points={
+        'console_scripts': [
+            'service_server = lab2_controller.service_server:main',
+            'service_client = lab2_controller.service_client:main',
+        ],
+    },
