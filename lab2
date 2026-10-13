@@ -1,8 +1,3 @@
 source /opt/ros/jazzy/setup.bash
 source ~/ros2_ws/install/setup.bash
-ros2 launch lab2_controller service_server.launch.py
-
-
-source /opt/ros/jazzy/setup.bash
-source ~/ros2_ws/install/setup.bash
-ros2 launch lab2_controller service_client.launch.py
+ros2 service call /get_errors lab2_interfaces/srv/A505269 "{x_current: 2.0, y_current: 2.0}"
