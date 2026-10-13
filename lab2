@@ -1,3 +1,6 @@
-<exec_depend>turtlesim</exec_depend>
-<exec_depend>lab2_interfaces</exec_depend>
-<exec_depend>geometry_msgs</exec_depend>
+<exec_depend>rclpy</exec_depend>
+  <exec_depend>turtlesim</exec_depend>
+  <exec_depend>lab2_interfaces</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
