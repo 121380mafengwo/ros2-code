@@ -1,49 +1,76 @@
 import rclpy
 from rclpy.node import Node
 from lab2_interfaces.srv import A505269
+from geometry_msgs.msg import Twist
+from turtlesim.msg import Pose
 import math
 
-class TurtleServiceServer(Node):
+class TurtleServiceClient(Node):
     def __init__(self):
-        super().__init__('turtle_service_server')
-        self.srv = self.create_service(A505269, 'get_errors', self.handle_service)
+        super().__init__('turtle_service_client')
+        self.cli = self.create_client(A505269, 'get_errors')
+        while not self.cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for server...')
+            
+        self.publisher = self.create_publisher(Twist, '/turtle1/cmd_vel', 10)
+        self.subscription = self.create_subscription(Pose, '/turtle1/pose', self.pose_callback, 10)
         
-        self.targets = [(2.0, 3.0), (4.0, 2.0), (7.0, 1.0), (5.0, 4.0), (4.0, 2.0)]
-        self.current_target_idx = 0
+        self.current_pose = None
+        self.req = A505269.Request()
         
-    def handle_service(self, request, response):
-        if self.current_target_idx >= len(self.targets):
-            response.distance = 0.0
-            response.angle = 0.0
-            response.is_completed = True
-            return response
+        self.timer = self.create_timer(0.1, self.control_loop)
+        self.waiting_for_response = False
+        self.task_finished = False
+        
+    def pose_callback(self, msg):
+        self.current_pose = msg
 
-        target_x, target_y = self.targets[self.current_target_idx]
+    def control_loop(self):
+        if self.current_pose is None or self.task_finished:
+            return
         
-        dx = target_x - request.x_current
-        dy = target_y - request.y_current
-        
-        response.distance = math.sqrt(dx**2 + dy**2)
-        response.angle = math.atan2(dy, dx) 
-        if response.angle < 0:
-            response.angle += 2 * math.pi
+        if not self.waiting_for_response:
+            self.req.x_current = self.current_pose.x
+            self.req.y_current = self.current_pose.y
             
-        if response.distance < 0.1:
-            response.is_completed = True
-            self.current_target_idx += 1
-            if self.current_target_idx < len(self.targets):
-                self.get_logger().info(f'Reached! Switching to target {self.current_target_idx + 1}/{len(self.targets)}')
-            else:
-                self.get_logger().info('ALL TARGETS REACHED!')
-        else:
-            response.is_completed = False
+            self.future = self.cli.call_async(self.req)
+            self.future.add_done_callback(self.service_response_callback)
+            self.waiting_for_response = True
             
-        return response
+    def service_response_callback(self, future):
+        try:
+            response = future.result()
+            if response.is_completed:
+                self.publisher.publish(Twist())
+                self.waiting_for_response = False 
+                
+                if response.distance == 0.0 and response.angle == 0.0:
+                    self.get_logger().info('Mission Complete! Stopping.')
+                    self.task_finished = True
+                return
+                
+            angle_error = response.angle - self.current_pose.theta
+            angle_error = math.atan2(math.sin(angle_error), math.cos(angle_error))
+            
+            twist = Twist()
+            # 速度降到 0.5，防止冲过目标点
+            if abs(angle_error) > 0.1:
+                twist.angular.z = 0.5 if angle_error > 0 else -0.5
+            elif response.distance > 0.1:
+                twist.linear.x = 0.5
+                
+            self.publisher.publish(twist)
+            self.waiting_for_response = False  
+            
+        except Exception as e:
+            self.get_logger().error(f'Service call failed: {e}')
+            self.waiting_for_response = False
 
 def main(args=None):
     rclpy.init(args=args)
-    node = TurtleServiceServer()
+    node = TurtleServiceClient()
     rclpy.spin(node)
+    node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
