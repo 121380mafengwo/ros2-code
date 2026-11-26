@@ -37,11 +37,11 @@
     <!-- 3. 机械臂链条 (严格 1 条线，无分叉，包含 9 个 link) -->
     <!-- ========================================================= -->
 
-    <!-- 机械臂 Link 1 (红底座：改成了长筒套，长度加长到 0.15) -->
+    <!-- 机械臂 Link 1 (红底座：长度、位置完全保持你的原样) -->
     <link name="arm_base_link">
         <visual>
-            <geometry><cylinder length="0.15" radius="0.04"/></geometry>
-            <origin xyz="0 0 0.075" rpy="0 0 0"/>
+            <geometry><cylinder length="0.04" radius="0.04"/></geometry>
+            <origin xyz="0 0 0.02" rpy="0 0 0"/>
             <material name="red"/>
         </visual>
     </link>
@@ -53,27 +53,28 @@
         <limit lower="-3.14" upper="3.14" effort="10" velocity="1.0"/>
     </joint>
 
-    <!-- 机械臂 Link 2 (橙杆：加长到 0.2，并往下藏进红底座里) -->
+    <!-- 机械臂 Link 2 (橙色杆：修改这里！长度加大到 0.2，中心点下移) -->
     <link name="arm_link1">
         <visual>
             <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+            <!-- 中心点设为 0.05，这样底端在 -0.05（藏进底盘），顶端在 0.15 -->
             <origin xyz="0 0 0.05" rpy="0 0 0"/>
             <material name="orange"/>
         </visual>
     </link>
     
-    <!-- 关节 2: 滑动 (修改了原点位置和限制) -->
+    <!-- 关节 2 (滑动：修改这里！限制最大伸出量) -->
     <joint name="joint2_P" type="prismatic">
         <parent link="arm_base_link"/>
         <child link="arm_link1"/>
-        <!-- 把滑动基准点设在红筒的中上部(0.1处) -->
-        <origin xyz="0 0 0.1" rpy="0 0 0"/>
+        <!-- 连接点依然在红底座顶部 (0.04) -->
+        <origin xyz="0 0 0.04" rpy="0 0 0"/>
         <axis xyz="0 0 1"/>
-        <!-- 核心：只允许往上滑 0.05 米。这样橙杆底端永远在红筒内部！ -->
-        <limit lower="0.0" upper="0.05" effort="10" velocity="0.5"/>
+        <!-- 极限锁定：最多只向上滑 0.04 米，这样橙杆的底端最高只能到 0.03，永远包在红底座内！ -->
+        <limit lower="0.0" upper="0.04" effort="10" velocity="0.5"/>
     </joint>
 
-    <!-- 机械臂 Link 3 -->
+    <!-- 机械臂 Link 3 (绿杆连接点保持原样) -->
     <link name="arm_link2">
         <visual>
             <geometry><cylinder length="0.12" radius="0.015"/></geometry>
@@ -81,7 +82,7 @@
             <material name="green"/>
         </visual>
     </link>
-    <!-- 关节 3: 旋转 (原点保持在 0.15，完美对接橙杆顶端) -->
+    <!-- 关节 3 (旋转：原点 0.15 完美对齐橙杆的最高点) -->
     <joint name="joint3_R" type="revolute">
         <parent link="arm_link1"/>
         <child link="arm_link2"/>
@@ -105,9 +106,10 @@
         <axis xyz="0 0 1"/>
     </joint>
 
-    <!-- 为了满足脚本的变态要求，后面全部做成没有任何分叉的固定延长杆，只走一条直线 -->
+    <!-- ========================================================= -->
+    <!-- 下方为你原本的凑数连杆 5 - 9，绝对一字未动 -->
+    <!-- ========================================================= -->
 
-    <!-- 机械臂 Link 5 -->
     <link name="arm_link4">
         <visual>
             <geometry><cylinder length="0.03" radius="0.01"/></geometry>
@@ -121,7 +123,6 @@
         <origin xyz="0 0 0.08" rpy="0 0 0"/>
     </joint>
 
-    <!-- 机械臂 Link 6 -->
     <link name="arm_link5">
         <visual>
             <geometry><cylinder length="0.03" radius="0.01"/></geometry>
@@ -135,7 +136,6 @@
         <origin xyz="0 0 0.03" rpy="0 0 0"/>
     </joint>
 
-    <!-- 机械臂 Link 7 -->
     <link name="arm_link6">
         <visual>
             <geometry><cylinder length="0.03" radius="0.01"/></geometry>
@@ -149,7 +149,6 @@
         <origin xyz="0 0 0.03" rpy="0 0 0"/>
     </joint>
 
-    <!-- 机械臂 Link 8 -->
     <link name="arm_link7">
         <visual>
             <geometry><cylinder length="0.03" radius="0.01"/></geometry>
@@ -163,7 +162,6 @@
         <origin xyz="0 0 0.03" rpy="0 0 0"/>
     </joint>
 
-    <!-- 机械臂 Link 9 (末端) -->
     <link name="arm_link8">
         <visual>
             <geometry><sphere radius="0.015"/></geometry>
