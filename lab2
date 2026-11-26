@@ -1,177 +1,99 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my_best_model">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my_robot">
+    <!-- 定义参数：变体9 -->
+    <xacro:property name="chassis_length" value="0.22"/>
+    <xacro:property name="chassis_width" value="0.16"/>
+    <xacro:property name="chassis_height" value="0.09"/>
+    <xacro:property name="wheel_radius" value="0.12"/>
+    <xacro:property name="wheel_length" value="0.05"/>
+    <xacro:property name="wheel_separation" value="0.17"/> <!-- 轮距，略大于底盘宽度以保证稳定 -->
 
-    <xacro:include filename="materials.xacro"/>
-    <xacro:include filename="wheel.xacro"/>
-
-    <!-- ================= 1. 移动底盘 (唯一的 Box) ================= -->
+    <!-- Base Link -->
     <link name="base_link">
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
-            <geometry><box size="0.22 0.16 0.09"/></geometry>
-            <material name="blue"/>
+            <geometry>
+                <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+            </geometry>
+            <material name="green"><color rgba="0 1 0 1"/></material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
-            <geometry><box size="0.22 0.16 0.09"/></geometry>
+            <geometry>
+                <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+            </geometry>
         </collision>
+        <inertial>
+            <mass value="5.0"/>
+            <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+        </inertial>
     </link>
 
-    <!-- ================= 2. 驱动轮与万向轮 ================= -->
-    <xacro:wheel side="left" x="0.0" y="0.10" z="-0.045"/>
-    <xacro:wheel side="right" x="0.0" y="-0.10" z="-0.045"/>
+    <!-- 左轮 -->
+    <link name="left_wheel">
+        <visual>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+            </geometry>
+            <material name="black"><color rgba="0 0 0 1"/></material>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.5"/>
+            <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+        </inertial>
+    </link>
+    <joint name="left_wheel_joint" type="continuous">
+        <parent link="base_link"/>
+        <child link="left_wheel"/>
+        <origin xyz="0 ${wheel_separation/2 + wheel_length/2} 0" rpy="-${pi/2} 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
 
-    <link name="caster_link">
+    <!-- 右轮 -->
+    <link name="right_wheel">
+        <visual>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+            </geometry>
+            <material name="black"><color rgba="0 0 0 1"/></material>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.5"/>
+            <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+        </inertial>
+    </link>
+    <joint name="right_wheel_joint" type="continuous">
+        <parent link="base_link"/>
+        <child link="right_wheel"/>
+        <origin xyz="0 -${wheel_separation/2 + wheel_length/2} 0" rpy="${pi/2} 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+
+    <!-- 万向轮 (图片9教程第10步要求) -->
+    <link name="caster_wheel">
         <visual>
             <geometry><sphere radius="0.03"/></geometry>
-            <material name="grey"/>
+            <material name="blue"><color rgba="0 0 1 1"/></material>
         </visual>
+        <collision>
+            <geometry><sphere radius="0.03"/></geometry>
+        </collision>
+        <inertial>
+            <mass value="0.1"/>
+            <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+        </inertial>
     </link>
-    <joint name="caster_joint" type="fixed">
+    <joint name="caster_wheel_joint" type="fixed">
         <parent link="base_link"/>
-        <child link="caster_link"/>
-        <origin xyz="-0.08 0 0.045" rpy="0 0 0"/>
+        <child link="caster_wheel"/>
+        <origin xyz="${chassis_length/2 - 0.05} 0 -${chassis_height/2}"/>
     </joint>
-
-    <!-- ========================================================= -->
-    <!-- 3. 机械臂链条 (严格 1 条线，无分叉，包含 9 个 link) -->
-    <!-- ========================================================= -->
-
-    <!-- 机械臂 Link 1 (红底座：长度、位置完全保持你的原样) -->
-    <link name="arm_base_link">
-        <visual>
-            <geometry><cylinder length="0.04" radius="0.04"/></geometry>
-            <origin xyz="0 0 0.02" rpy="0 0 0"/>
-            <material name="red"/>
-        </visual>
-    </link>
-    <joint name="joint1_R" type="revolute">
-        <parent link="base_link"/>
-        <child link="arm_base_link"/>
-        <origin xyz="-0.05 0 0.045" rpy="0 0 0"/>
-        <axis xyz="0 0 1"/>
-        <limit lower="-3.14" upper="3.14" effort="10" velocity="1.0"/>
-    </joint>
-
-    <!-- 机械臂 Link 2 (橙色杆：修改这里！长度加大到 0.2，中心点下移) -->
-    <link name="arm_link1">
-        <visual>
-            <geometry><cylinder length="0.2" radius="0.02"/></geometry>
-            <!-- 中心点设为 0.05，这样底端在 -0.05（藏进底盘），顶端在 0.15 -->
-            <origin xyz="0 0 0.05" rpy="0 0 0"/>
-            <material name="orange"/>
-        </visual>
-    </link>
-    
-    <!-- 关节 2 (滑动：修改这里！限制最大伸出量) -->
-    <joint name="joint2_P" type="prismatic">
-        <parent link="arm_base_link"/>
-        <child link="arm_link1"/>
-        <!-- 连接点依然在红底座顶部 (0.04) -->
-        <origin xyz="0 0 0.04" rpy="0 0 0"/>
-        <axis xyz="0 0 1"/>
-        <!-- 极限锁定：最多只向上滑 0.04 米，这样橙杆的底端最高只能到 0.03，永远包在红底座内！ -->
-        <limit lower="0.0" upper="0.04" effort="10" velocity="0.5"/>
-    </joint>
-
-    <!-- 机械臂 Link 3 (绿杆连接点保持原样) -->
-    <link name="arm_link2">
-        <visual>
-            <geometry><cylinder length="0.12" radius="0.015"/></geometry>
-            <origin xyz="0 0 0.06" rpy="0 0 0"/>
-            <material name="green"/>
-        </visual>
-    </link>
-    <!-- 关节 3 (旋转：原点 0.15 完美对齐橙杆的最高点) -->
-    <joint name="joint3_R" type="revolute">
-        <parent link="arm_link1"/>
-        <child link="arm_link2"/>
-        <origin xyz="0 0 0.15" rpy="0 0 0"/>
-        <axis xyz="0 1 0"/>
-        <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
-    </joint>
-
-    <!-- 机械臂 Link 4 -->
-    <link name="arm_link3">
-        <visual>
-            <geometry><cylinder length="0.08" radius="0.01"/></geometry>
-            <origin xyz="0 0 0.04" rpy="0 0 0"/>
-            <material name="grey"/>
-        </visual>
-    </link>
-    <joint name="joint4_C" type="continuous">
-        <parent link="arm_link2"/>
-        <child link="arm_link3"/>
-        <origin xyz="0 0 0.12" rpy="0 0 0"/>
-        <axis xyz="0 0 1"/>
-    </joint>
-
-    <!-- ========================================================= -->
-    <!-- 下方为你原本的凑数连杆 5 - 9，绝对一字未动 -->
-    <!-- ========================================================= -->
-
-    <link name="arm_link4">
-        <visual>
-            <geometry><cylinder length="0.03" radius="0.01"/></geometry>
-            <origin xyz="0 0 0.015" rpy="0 0 0"/>
-            <material name="blue"/>
-        </visual>
-    </link>
-    <joint name="joint5_fixed" type="fixed">
-        <parent link="arm_link3"/>
-        <child link="arm_link4"/>
-        <origin xyz="0 0 0.08" rpy="0 0 0"/>
-    </joint>
-
-    <link name="arm_link5">
-        <visual>
-            <geometry><cylinder length="0.03" radius="0.01"/></geometry>
-            <origin xyz="0 0 0.015" rpy="0 0 0"/>
-            <material name="orange"/>
-        </visual>
-    </link>
-    <joint name="joint6_fixed" type="fixed">
-        <parent link="arm_link4"/>
-        <child link="arm_link5"/>
-        <origin xyz="0 0 0.03" rpy="0 0 0"/>
-    </joint>
-
-    <link name="arm_link6">
-        <visual>
-            <geometry><cylinder length="0.03" radius="0.01"/></geometry>
-            <origin xyz="0 0 0.015" rpy="0 0 0"/>
-            <material name="green"/>
-        </visual>
-    </link>
-    <joint name="joint7_fixed" type="fixed">
-        <parent link="arm_link5"/>
-        <child link="arm_link6"/>
-        <origin xyz="0 0 0.03" rpy="0 0 0"/>
-    </joint>
-
-    <link name="arm_link7">
-        <visual>
-            <geometry><cylinder length="0.03" radius="0.01"/></geometry>
-            <origin xyz="0 0 0.015" rpy="0 0 0"/>
-            <material name="red"/>
-        </visual>
-    </link>
-    <joint name="joint8_fixed" type="fixed">
-        <parent link="arm_link6"/>
-        <child link="arm_link7"/>
-        <origin xyz="0 0 0.03" rpy="0 0 0"/>
-    </joint>
-
-    <link name="arm_link8">
-        <visual>
-            <geometry><sphere radius="0.015"/></geometry>
-            <material name="red"/>
-        </visual>
-    </link>
-    <joint name="joint9_fixed" type="fixed">
-        <parent link="arm_link7"/>
-        <child link="arm_link8"/>
-        <origin xyz="0 0 0.03" rpy="0 0 0"/>
-    </joint>
-
 </robot>
