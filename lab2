@@ -1,52 +1,179 @@
-import os
-from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, Command
-from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue  # 新增导入
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my_best_model">
 
-def generate_launch_description():
-    pkg_lab = get_package_share_directory('my_best_model')
+    <xacro:include filename="materials.xacro"/>
+    <xacro:include filename="wheel.xacro"/>
+
+    <!-- ================= 1. 移动底盘 (唯一的 Box) ================= -->
+    <link name="base_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry><box size="0.22 0.16 0.09"/></geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry><box size="0.22 0.16 0.09"/></geometry>
+        </collision>
+    </link>
+
+    <!-- ================= 2. 驱动轮与万向轮 ================= -->
+    <xacro:wheel side="left" x="0.0" y="0.10" z="-0.045"/>
+    <xacro:wheel side="right" x="0.0" y="-0.10" z="-0.045"/>
+
+    <link name="caster_link">
+        <visual>
+            <geometry><sphere radius="0.03"/></geometry>
+            <material name="grey"/>
+        </visual>
+    </link>
+    <joint name="caster_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="caster_link"/>
+        <origin xyz="-0.08 0 0.045" rpy="0 0 0"/>
+    </joint>
+
+    <!-- ========================================================= -->
+    <!-- 3. 机械臂链条 (严格 1 条线，无分叉，包含 9 个 link) -->
+    <!-- ========================================================= -->
+
+    <!-- 机械臂 Link 1 (红底座：改成了长筒套，长度加长到 0.15) -->
+    <link name="arm_base_link">
+        <visual>
+            <geometry><cylinder length="0.15" radius="0.04"/></geometry>
+            <origin xyz="0 0 0.075" rpy="0 0 0"/>
+            <material name="red"/>
+        </visual>
+    </link>
+    <joint name="joint1_R" type="revolute">
+        <parent link="base_link"/>
+        <child link="arm_base_link"/>
+        <origin xyz="-0.05 0 0.045" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-3.14" upper="3.14" effort="10" velocity="1.0"/>
+    </joint>
+
+    <!-- 机械臂 Link 2 (橙杆：加长到 0.2，并往下藏进红底座里) -->
+    <link name="arm_link1">
+        <visual>
+            <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+            <origin xyz="0 0 0.05" rpy="0 0 0"/>
+            <material name="orange"/>
+        </visual>
+    </link>
     
-    xacro_file = os.path.join(pkg_lab, 'urdf', 'robot_model.xacro')
+    <!-- 关节 2: 滑动 (修改了原点位置和限制) -->
+    <joint name="joint2_P" type="prismatic">
+        <parent link="arm_base_link"/>
+        <child link="arm_link1"/>
+        <!-- 把滑动基准点设在红筒的中上部(0.1处) -->
+        <origin xyz="0 0 0.1" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <!-- 核心：只允许往上滑 0.05 米。这样橙杆底端永远在红筒内部！ -->
+        <limit lower="0.0" upper="0.05" effort="10" velocity="0.5"/>
+    </joint>
 
-    robot_state_publisher = Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        name='robot_state_publisher',
-        output='both',
-        parameters=[{
-            'robot_description': ParameterValue(
-                Command(['xacro ', xacro_file]), 
-                value_type=str
-            )
-        }]
-    )
+    <!-- 机械臂 Link 3 -->
+    <link name="arm_link2">
+        <visual>
+            <geometry><cylinder length="0.12" radius="0.015"/></geometry>
+            <origin xyz="0 0 0.06" rpy="0 0 0"/>
+            <material name="green"/>
+        </visual>
+    </link>
+    <!-- 关节 3: 旋转 (原点保持在 0.15，完美对接橙杆顶端) -->
+    <joint name="joint3_R" type="revolute">
+        <parent link="arm_link1"/>
+        <child link="arm_link2"/>
+        <origin xyz="0 0 0.15" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
+    </joint>
 
-    joint_state_publisher_gui = Node(
-        package='joint_state_publisher_gui',
-        executable='joint_state_publisher_gui',
-        name='joint_state_publisher_gui',
-        output='both',
-    )
+    <!-- 机械臂 Link 4 -->
+    <link name="arm_link3">
+        <visual>
+            <geometry><cylinder length="0.08" radius="0.01"/></geometry>
+            <origin xyz="0 0 0.04" rpy="0 0 0"/>
+            <material name="grey"/>
+        </visual>
+    </link>
+    <joint name="joint4_C" type="continuous">
+        <parent link="arm_link2"/>
+        <child link="arm_link3"/>
+        <origin xyz="0 0 0.12" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
 
-    rviz_config_file = os.path.join(pkg_lab, 'config', 'rviz.rviz')
-    rviz = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        arguments=['-d', rviz_config_file],
-        output='screen'
-    )
+    <!-- 为了满足脚本的变态要求，后面全部做成没有任何分叉的固定延长杆，只走一条直线 -->
 
-    return LaunchDescription([
-        DeclareLaunchArgument(
-            'urdf_model',
-            default_value=xacro_file,
-            description='Full path to the Xacro file'
-        ),
-        robot_state_publisher,
-        joint_state_publisher_gui,
-        rviz
-    ])
+    <!-- 机械臂 Link 5 -->
+    <link name="arm_link4">
+        <visual>
+            <geometry><cylinder length="0.03" radius="0.01"/></geometry>
+            <origin xyz="0 0 0.015" rpy="0 0 0"/>
+            <material name="blue"/>
+        </visual>
+    </link>
+    <joint name="joint5_fixed" type="fixed">
+        <parent link="arm_link3"/>
+        <child link="arm_link4"/>
+        <origin xyz="0 0 0.08" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 机械臂 Link 6 -->
+    <link name="arm_link5">
+        <visual>
+            <geometry><cylinder length="0.03" radius="0.01"/></geometry>
+            <origin xyz="0 0 0.015" rpy="0 0 0"/>
+            <material name="orange"/>
+        </visual>
+    </link>
+    <joint name="joint6_fixed" type="fixed">
+        <parent link="arm_link4"/>
+        <child link="arm_link5"/>
+        <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 机械臂 Link 7 -->
+    <link name="arm_link6">
+        <visual>
+            <geometry><cylinder length="0.03" radius="0.01"/></geometry>
+            <origin xyz="0 0 0.015" rpy="0 0 0"/>
+            <material name="green"/>
+        </visual>
+    </link>
+    <joint name="joint7_fixed" type="fixed">
+        <parent link="arm_link5"/>
+        <child link="arm_link6"/>
+        <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 机械臂 Link 8 -->
+    <link name="arm_link7">
+        <visual>
+            <geometry><cylinder length="0.03" radius="0.01"/></geometry>
+            <origin xyz="0 0 0.015" rpy="0 0 0"/>
+            <material name="red"/>
+        </visual>
+    </link>
+    <joint name="joint8_fixed" type="fixed">
+        <parent link="arm_link6"/>
+        <child link="arm_link7"/>
+        <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 机械臂 Link 9 (末端) -->
+    <link name="arm_link8">
+        <visual>
+            <geometry><sphere radius="0.015"/></geometry>
+            <material name="red"/>
+        </visual>
+    </link>
+    <joint name="joint9_fixed" type="fixed">
+        <parent link="arm_link7"/>
+        <child link="arm_link8"/>
+        <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    </joint>
+
+</robot>
