@@ -29,7 +29,7 @@
         <xacro:box_inertia m="5.0" w="${chassis_length}" h="${chassis_width}" d="${chassis_height}"/>
     </link>
 
-    <!-- 左轮：旋转轴设为 Y 轴，不要用 rpy -->
+    
     <link name="left_wheel_link">
         <visual>
             <origin rpy="-${pi/2} 0 0"/>
@@ -50,7 +50,7 @@
         <axis xyz="0 1 0"/>
     </joint>
 
-    <!-- 右轮 -->
+    
     <link name="right_wheel_link">
         <visual>
             <origin rpy="${pi/2} 0 0"/>
@@ -71,8 +71,7 @@
         <axis xyz="0 1 0"/>
     </joint>
 
-    <!-- 万向轮：高度经过严格计算，保证三个轮子绝对同时着地 -->
-    <!-- 计算：轮子半径0.12，万向轮半径0.04。底盘半高0.045。为了底部平齐，Z位置应该在 -0.045 - (0.12 - 0.04) = -0.125 -->
+    
     <link name="caster_wheel_link">
         <visual>
             <geometry><sphere radius="${caster_radius}"/></geometry>
