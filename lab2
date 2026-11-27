@@ -1,39 +1,31 @@
-import os
 from glob import glob
-from setuptools import setup
+import os
+from setuptools import find_packages, setup
 
 package_name = 'my_best_robot_simulation_control'
 
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=find_packages(exclude=['test']),
     data_files=[
-        # 注册包资源索引
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
-        # 安装 package.xml
         ('share/' + package_name, ['package.xml']),
-        
-        # --- 下面这三行非常关键，用于将文件夹安装到 ROS 2 环境中 ---
-        # 安装 launch 文件夹下的所有启动文件
-        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
-        # 安装 urdf 文件夹下的所有模型文件
-        (os.path.join('share', package_name, 'urdf'), glob(os.path.join('urdf', '*'))),
-        # 安装 config 文件夹下的所有配置文件 (如 ros_gz_bridge.yaml)
-        (os.path.join('share', package_name, 'config'), glob(os.path.join('config', '*'))),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
+        (os.path.join('share', package_name, 'urdf'), glob('urdf/*')),
+        (os.path.join('share', package_name, 'config'), glob('config/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='student',               # 你可以改成你的名字
-    maintainer_email='student@todo.todo', # 你可以改成你的邮箱
-    description='Lab 4 simulation with custom diff_drive node',
+    maintainer='li-xiangxiang',
+    maintainer_email='li-xiangxiang@todo.todo',
+    description='Lab 4 simulation with custom diff drive node',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # 注册你的 Python 节点
-            'diff_drive_node = my_best_robot_simulation_control.diff_drive_node:main'
+            'diff_drive_node = my_best_robot_simulation_control.diff_drive_node:main',
         ],
     },
 )
