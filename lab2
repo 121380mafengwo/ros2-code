@@ -1,43 +1,44 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my_robot">
+    <!-- 定义参数：变体9 -->
     <xacro:property name="chassis_length" value="0.22"/>
     <xacro:property name="chassis_width" value="0.16"/>
     <xacro:property name="chassis_height" value="0.09"/>
     <xacro:property name="wheel_radius" value="0.12"/>
-    <xacro:property name="wheel_width" value="0.04"/>
-    <!-- 轮距放宽，防止轮子卡进底盘 -->
-    <xacro:property name="wheel_separation" value="0.22"/> 
-    <xacro:property name="caster_radius" value="0.04"/>
+    <xacro:property name="wheel_length" value="0.05"/>
+    <xacro:property name="wheel_separation" value="0.17"/> <!-- 轮距，略大于底盘宽度以保证稳定 -->
 
-    <!-- 底盘 -->
+    <!-- Base Link -->
     <link name="base_link">
-        <!-- 关键修复1：底盘中心抬高到轮子半径的高度，这样轮子刚好接地，且底盘在轮子上方 -->
-        <pose>0 0 ${wheel_radius} 0 0 0</pose>
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0" />
-            <geometry><box size="${chassis_length} ${chassis_width} ${chassis_height}" /></geometry>
-            <material name="green"><color rgba="0 1 0 1" /></material>
+            <geometry>
+                <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+            </geometry>
+            <material name="green"><color rgba="0 1 0 1"/></material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
-            <geometry><box size="${chassis_length} ${chassis_width} ${chassis_height}" /></geometry>
+            <geometry>
+                <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+            </geometry>
         </collision>
         <inertial>
             <mass value="5.0"/>
-            <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/>
+            <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
         </inertial>
     </link>
 
     <!-- 左轮 -->
-    <link name="left_wheel_link">
+    <link name="left_wheel">
         <visual>
-            <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
-            <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}" /></geometry>
-            <material name="black"><color rgba="0 0 0 1" /></material>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+            </geometry>
+            <material name="black"><color rgba="0 0 0 1"/></material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
-            <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}" /></geometry>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+            </geometry>
         </collision>
         <inertial>
             <mass value="0.5"/>
@@ -46,23 +47,23 @@
     </link>
     <joint name="left_wheel_joint" type="continuous">
         <parent link="base_link"/>
-        <child link="left_wheel_link"/>
-        <!-- 相对底盘，轮子在 Z=0 处，完美贴合 -->
-        <origin xyz="0 ${wheel_separation/2} 0" rpy="0 0 0"/>
-        <axis xyz="0 1 0"/>
-        <limit effort="100.0" velocity="100.0"/>
+        <child link="left_wheel"/>
+        <origin xyz="0 ${wheel_separation/2 + wheel_length/2} 0" rpy="-${pi/2} 0 0"/>
+        <axis xyz="0 0 1"/>
     </joint>
 
     <!-- 右轮 -->
-    <link name="right_wheel_link">
+    <link name="right_wheel">
         <visual>
-            <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
-            <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}" /></geometry>
-            <material name="black"><color rgba="0 0 0 1" /></material>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+            </geometry>
+            <material name="black"><color rgba="0 0 0 1"/></material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
-            <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}" /></geometry>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}"/>
+            </geometry>
         </collision>
         <inertial>
             <mass value="0.5"/>
@@ -71,33 +72,19 @@
     </link>
     <joint name="right_wheel_joint" type="continuous">
         <parent link="base_link"/>
-        <child link="right_wheel_link"/>
-        <origin xyz="0 ${-wheel_separation/2} 0" rpy="0 0 0"/>
-        <axis xyz="0 1 0"/>
-        <limit effort="100.0" velocity="100.0"/>
+        <child link="right_wheel"/>
+        <origin xyz="0 -${wheel_separation/2 + wheel_length/2} 0" rpy="${pi/2} 0 0"/>
+        <axis xyz="0 0 1"/>
     </joint>
 
-    <!-- 万向轮（完全照抄教材87页的代码，0摩擦力防卡死） -->
-    <link name="caster_wheel_link">
+    <!-- 万向轮 (图片9教程第10步要求) -->
+    <link name="caster_wheel">
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0" />
-            <geometry><sphere radius="${caster_radius}" /></geometry>
-            <material name="blue"><color rgba="0 0 1 1" /></material>
+            <geometry><sphere radius="0.03"/></geometry>
+            <material name="blue"><color rgba="0 0 1 1"/></material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
-            <geometry><sphere radius="${caster_radius}" /></geometry>
-            <surface>
-                <friction>
-                    <ode>
-                        <!-- 关键修复2：教材上的0摩擦设置，防止万向轮当刹车 -->
-                        <mu>0</mu>
-                        <mu2>0</mu2>
-                        <slip1>1.0</slip1>
-                        <slip2>1.0</slip2>
-                    </ode>
-                </friction>
-            </surface>
+            <geometry><sphere radius="0.03"/></geometry>
         </collision>
         <inertial>
             <mass value="0.1"/>
@@ -106,21 +93,7 @@
     </link>
     <joint name="caster_wheel_joint" type="fixed">
         <parent link="base_link"/>
-        <child link="caster_wheel_link"/>
-        <!-- 轮子半径0.12，万向轮0.04，所以Z轴降下0.08，完美落地不悬空 -->
-        <origin xyz="0.08 0 -0.08" rpy="0 0 0"/>
+        <child link="caster_wheel"/>
+        <origin xyz="${chassis_length/2 - 0.05} 0 -${chassis_height/2}"/>
     </joint>
-
-    <!-- Gazebo 驱动插件 -->
-    <gazebo>
-        <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
-            <left_joint>left_wheel_joint</left_joint>
-            <right_joint>right_wheel_joint</right_joint>
-            <wheel_separation>${wheel_separation}</wheel_separation>
-            <wheel_radius>${wheel_radius}</wheel_radius>
-            <max_wheel_torque>100.0</max_wheel_torque>
-            <max_wheel_acceleration>10.0</max_wheel_acceleration>
-            <topic>cmd_vel</topic>
-        </plugin>
-    </gazebo>
 </robot>
