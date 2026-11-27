@@ -24,7 +24,7 @@ class DiffDriveController(Node):
         self.wheel_radius = 0.12
         self.wheel_separation = 0.18
         
-        self.get_logger().info('Diff drive node started.')
+        self.get_logger().info('Diff drive node started. Waiting for /cmd_vel...')
 
     def cmd_vel_callback(self, msg):
         v = msg.linear.x
@@ -40,6 +40,8 @@ class DiffDriveController(Node):
         command_msg.data = [w_left, w_right]
         
         self.publisher.publish(command_msg)
+        
+        self.get_logger().info(f'Received cmd: v={v:.2f}, w={w:.2f} | Sending: left={w_left:.2f} rad/s, right={w_right:.2f} rad/s')
 
 def main(args=None):
     rclpy.init(args=args)
