@@ -1,16 +1,5 @@
-controller_manager:
-  ros__parameters:
-    update_rate: 60
-    use_sim_time: true
-
-    joint_state_broadcaster:
-      type: joint_state_broadcaster/JointStateBroadcaster
-
-    velocity_controller:
-      type: velocity_controllers/JointGroupVelocityController
-
-velocity_controller:
-  ros__parameters:
-    joints:
-      - wheel_left_joint
-      - wheel_right_joint
+- ros_topic_name: "/clock"
+  gz_topic_name: "/clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS
