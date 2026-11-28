@@ -1,32 +1,44 @@
-import os
-from glob import glob
-from setuptools import setup
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Float64MultiArray
+from rclpy.qos import qos_profile_sensor_data
 
-package_name = 'my_best_robot_simulation_control'
+class DiffDriveKinematics(Node):
+    def __init__(self):
+        super().__init__('diff_drive_kinematics')
+        # 使用 qos_profile_sensor_data 确保能接收到测试脚本发出的指令
+        self.subscription = self.create_subscription(
+            Twist, '/cmd_vel', self.cmd_vel_callback, qos_profile_sensor_data)
+        self.publisher_ = self.create_publisher(
+            Float64MultiArray, '/velocity_controller/commands', 10)
+        
+        # 你的变体 9 参数
+        self.wheel_radius = 0.12
+        self.wheel_separation = 0.16
 
-setup(
-    name=package_name,
-    version='0.0.0',
-    packages=[package_name],
-    data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
-        (os.path.join('share', package_name, 'urdf'), glob('urdf/*')),
-        (os.path.join('share', package_name, 'config'), glob('config/*')),
-        (os.path.join('share', package_name, 'worlds'), glob('worlds/*')),
-    ],
-    install_requires=['setuptools'],
-    zip_safe=True,
-    maintainer='user',
-    maintainer_email='user@todo.todo',
-    description='Lab 4 simulation control',
-    license='Apache-2.0',
-    tests_require=['pytest'],
-    entry_points={
-        'console_scripts': [
-            'diff_drive_node = my_best_robot_simulation_control.diff_drive_node:main',
-        ],
-    },
-)
+    def cmd_vel_callback(self, msg):
+        v = msg.linear.x
+        omega = msg.angular.z
+        
+        # 差速运动学逆解 (v ± w*L/2) / r
+        v_left = v - (omega * self.wheel_separation / 2.0)
+        v_right = v + (omega * self.wheel_separation / 2.0)
+        w_left = v_left / self.wheel_radius
+        w_right = v_right / self.wheel_radius
+
+        cmd_msg = Float64MultiArray()
+        cmd_msg.data = [w_left, w_right]
+        self.publisher_.publish(cmd_msg)
+        self.get_logger().info(f'Cmd: v={v:.2f}, w={omega:.2f} -> L={w_left:.4f}, R={w_right:.4f}')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = DiffDriveKinematics()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
